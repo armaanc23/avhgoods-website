@@ -294,19 +294,37 @@ body {
     .header .container {
         flex-direction: column;
         text-align: center;
+        padding: 10px;
+    }
+
+    .logo {
+        height: 80px; /* Smaller logo container for mobile */
+    }
+
+    .avh-logo {
+        transform: scale(0.3); /* Smaller logo for mobile */
     }
 
     .main-nav {
-        margin-top: 1rem;
+        margin: 10px 0;
+        width: 100%;
     }
 
     .main-nav ul {
         flex-direction: column;
         gap: 1rem;
+        padding: 0;
+    }
+
+    .main-nav a {
+        display: block;
+        padding: 10px;
+        background-color: var(--light-gray);
+        border-radius: 4px;
     }
 
     .hero {
-        padding: 6rem 0 3rem;
+        padding: 100px 20px 3rem;
     }
 
     .hero h2 {
@@ -315,5 +333,83 @@ body {
 
     .product-grid {
         grid-template-columns: 1fr;
+        padding: 0 10px;
     }
+
+    .product-card {
+        margin-bottom: 20px;
+    }
+
+    .product-card img {
+        height: 250px;
+    }
+
+    .about-content {
+        padding: 0 20px;
+    }
+
+    .brand-values {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding: 0 20px;
+    }
+
+    .contact {
+        padding: 3rem 20px;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 1.5rem;
+    }
+
+    .footer-brand {
+        margin-bottom: 1rem;
+    }
+
+    .footer-links ul {
+        padding: 0;
+    }
+}
+
+/* Additional mobile optimizations for very small screens */
+@media (max-width: 480px) {
+    .hero h2 {
+        font-size: 1.8rem;
+    }
+
+    .products h2,
+    .about h2,
+    .contact h2 {
+        font-size: 2rem;
+    }
+
+    .product-card img {
+        height: 200px;
+    }
+
+    .cta-button {
+        width: 100%;
+        text-align: center;
+        margin: 0 0 1.5rem;
+    }
+}
+
+/* Ensure images are responsive */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Improve touch targets for mobile */
+a, button {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* Prevent horizontal scroll on mobile */
+html, body {
+    overflow-x: hidden;
+    width: 100%;
 } 
