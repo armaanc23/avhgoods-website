@@ -1,0 +1,12 @@
+requests
+pandas
+numpy
+matplotlib
+yfinance
+beautifulsoup4
+alpha-vantage
+scipy
+streamlit
+finnhub-python
+py_vollib
+polygon-python-client 

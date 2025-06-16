@@ -1,0 +1,126 @@
+import pandas as pd
+
+def analyze_options_data(options_data_for_expiry, current_stock_price, option_type='calls', min_volume=10, min_open_interest=10, moneyness_strikes_range=5):
+    """
+    Analyzes and filters options data (calls or puts) for a single expiration date.
+
+    Args:
+        options_data_for_expiry (pd.DataFrame): DataFrame of options (either calls or puts) for one expiry.
+        current_stock_price (float): The current price of the underlying stock.
+        option_type (str): 'calls' or 'puts'.
+        min_volume (int): Minimum trading volume to include the option.
+        min_open_interest (int): Minimum open interest to include the option.
+        moneyness_strikes_range (int): Number of strikes around the money to consider (e.g., 5 strikes above and 5 below ATM for calls/puts respectively if available).
+
+    Returns:
+        pd.DataFrame: Filtered DataFrame of options, or None if input is invalid or no options meet criteria.
+    """
+    if options_data_for_expiry is None or options_data_for_expiry.empty or current_stock_price is None:
+        print(f"Invalid input for options analysis. Options data empty: {options_data_for_expiry is None or options_data_for_expiry.empty}, Current price None: {current_stock_price is None}")
+        return None
+
+    # Ensure correct columns are present (these are typical for yfinance)
+    required_cols = ['strike', 'volume', 'openInterest', 'impliedVolatility']
+    if not all(col in options_data_for_expiry.columns for col in required_cols):
+        print(f"Missing one or more required columns in {option_type} data for analysis: {required_cols}")
+        # print(options_data_for_expiry.columns)
+        return None
+    
+    # Make a copy to avoid SettingWithCopyWarning
+    filtered_options = options_data_for_expiry.copy()
+
+    # Filter by volume and open interest
+    filtered_options = filtered_options[
+        (filtered_options['volume'] >= min_volume) &
+        (filtered_options['openInterest'] >= min_open_interest)
+    ]
+
+    if filtered_options.empty:
+        # print(f"No {option_type} meet min volume/OI criteria.")
+        return None
+
+    # Determine At-The-Money (ATM) strike: closest strike to current stock price
+    filtered_options['moneyness_abs_diff'] = (filtered_options['strike'] - current_stock_price).abs()
+    atm_strike_row = filtered_options.loc[filtered_options['moneyness_abs_diff'].idxmin()]
+    atm_strike = atm_strike_row['strike']
+    
+    # Define a range of strikes around ATM
+    # For calls, typically look at ATM and OTM (strikes > ATM)
+    # For puts, typically look at ATM and OTM (strikes < ATM)
+    # We will select a band of strikes around the ATM strike for simplicity here
+    # This can be made more sophisticated (e.g. % moneyness)
+
+    # Sort by strike to easily select range
+    filtered_options = filtered_options.sort_values(by='strike')
+    atm_strike_index = filtered_options[filtered_options['strike'] == atm_strike].index[0]
+    
+    start_index = max(0, filtered_options.index.get_loc(atm_strike_index) - moneyness_strikes_range)
+    end_index = min(len(filtered_options) -1 , filtered_options.index.get_loc(atm_strike_index) + moneyness_strikes_range)
+    
+    # Ensure indices are valid if filtered_options became too small
+    if start_index > end_index:
+        # print(f"Not enough {option_type} strikes around ATM to select specified range.")
+        return filtered_options # Or return None / empty based on desired behavior
+        
+    # Select the range. Using .iloc for position-based slicing after finding ATM index.
+    # However, it's often easier to filter by strike values directly if we define a strike range.
+    strike_min = filtered_options.iloc[start_index]['strike']
+    strike_max = filtered_options.iloc[end_index]['strike']
+
+    # Let's simplify and select strikes numerically around the ATM strike
+    # Find the index of the ATM strike in the original sorted (by strike) list of options meeting vol/OI criteria
+    sorted_strikes = filtered_options['strike'].unique()
+    sorted_strikes.sort()
+    atm_idx_in_sorted_unique_strikes = pd.Series(sorted_strikes).searchsorted(atm_strike)
+    
+    lower_bound_idx = max(0, atm_idx_in_sorted_unique_strikes - moneyness_strikes_range)
+    upper_bound_idx = min(len(sorted_strikes), atm_idx_in_sorted_unique_strikes + moneyness_strikes_range + 1) # +1 for upper bound slicing
+    
+    selected_strikes = sorted_strikes[lower_bound_idx:upper_bound_idx]
+    
+    final_filtered_options = filtered_options[filtered_options['strike'].isin(selected_strikes)]
+
+    if final_filtered_options.empty:
+        # print(f"No {option_type} meet strike range criteria around ATM after vol/OI filtering.")
+        return None
+        
+    # Add a simple moneyness column: (Strike - Spot) / Spot for calls, (Spot - Strike) / Spot for puts might be more standard for % OTM/ITM
+    # For simplicity here: difference from current price
+    final_filtered_options.loc[:, 'distance_from_spot'] = final_filtered_options['strike'] - current_stock_price
+    
+    # Select relevant columns for display
+    display_cols = ['strike', 'lastPrice', 'volume', 'openInterest', 'impliedVolatility', 'distance_from_spot']
+    # Ensure all display_cols exist, some might be missing if options_data_for_expiry was minimal
+    display_cols = [col for col in display_cols if col in final_filtered_options.columns]
+    
+    return final_filtered_options[display_cols]
+
+def get_stock_info_yf(ticker_symbol):
+    if options_yf and current_stock_price is not None:
+        first_expiry = next(iter(options_yf))
+        print(f"\n--- Options Analysis for {stock_ticker} (Expiry: {first_expiry}, Current Price: {current_stock_price:.2f}) ---")
+        
+        if first_expiry in options_yf and not options_yf[first_expiry]["calls"].empty:
+            analyzed_calls = analyze_options_data(options_yf[first_expiry]["calls"], current_stock_price, option_type='calls', min_volume=5, min_open_interest=5, moneyness_strikes_range=5)
+            if analyzed_calls is not None and not analyzed_calls.empty:
+                print("\nFiltered Calls (around the money, min_vol=5, min_oi=5):")
+                print(analyzed_calls)
+            else:
+                print("\nNo calls met the filtering criteria or data was insufficient.")
+        else:
+            print(f"No call options data available for {first_expiry} to analyze.")
+
+        if first_expiry in options_yf and not options_yf[first_expiry]["puts"].empty:
+            analyzed_puts = analyze_options_data(options_yf[first_expiry]["puts"], current_stock_price, option_type='puts', min_volume=5, min_open_interest=5, moneyness_strikes_range=5)
+            if analyzed_puts is not None and not analyzed_puts.empty:
+                print("\nFiltered Puts (around the money, min_vol=5, min_oi=5):")
+                print(analyzed_puts)
+            else:
+                print("\nNo puts met the filtering criteria or data was insufficient.")
+        else:
+            print(f"No put options data available for {first_expiry} to analyze.")
+
+    elif current_stock_price is None:
+        print("\nSkipping options analysis as current stock price could not be determined.")
+    else:
+        # ... existing code ... 

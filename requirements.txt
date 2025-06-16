@@ -1,0 +1,9 @@
+requests
+pandas
+numpy
+matplotlib
+yfinance
+beautifulsoup4
+alpha-vantage
+scipy
+streamlit 
