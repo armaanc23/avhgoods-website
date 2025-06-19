@@ -15,7 +15,6 @@
             <div class="logo">
                 <img src="images/Main+Logo+with+TM.png" alt="AVH GOODS Logo" class="avh-logo">
             </div>
-            <button class="mobile-menu-button" aria-label="Toggle menu">☰</button>
             <nav class="main-nav">
                 <ul>
                     <li><a href="#products">Products</a></li>
@@ -125,21 +124,5 @@
             </div>
         </div>
     </footer>
-    <script>
-        // Mobile menu functionality
-        const mobileMenuButton = document.querySelector('.mobile-menu-button');
-        const mainNav = document.querySelector('.main-nav');
-        
-        mobileMenuButton.addEventListener('click', () => {
-            mainNav.classList.toggle('active');
-        });
-
-        // Close menu when clicking a link
-        document.querySelectorAll('.main-nav a').forEach(link => {
-            link.addEventListener('click', () => {
-                mainNav.classList.remove('active');
-            });
-        });
-    </script>
 </body>
 </html> 
